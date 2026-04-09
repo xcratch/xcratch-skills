@@ -1,0 +1,6 @@
+{
+  "name": "xcratch",
+  "version": "1.0.0",
+  "description": "Xcratch拡張機能の3スキル構成ガイド。xcratch-extension(ルーター)、xcratch-extension-create(セットアップ)、xcratch-extension-debug(デバッグ)を提供。",
+  "skills": ".github/skills"
+}

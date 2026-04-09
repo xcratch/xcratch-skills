@@ -99,18 +99,37 @@ If certificate files are not found, it starts with HTTP.
     {
       "type": "chrome",
       "request": "launch",
+      "preLaunchTask": "start debug servers",
       "name": "debug on dev-server",
-      "url": "https://0.0.0.0:8601",
+      "url": "https://localhost:8601/",
       "webRoot": "${workspaceFolder}/..",
+      "sourceMaps": true,
+      "sourceMapRenames": true,
       "sourceMapPathOverrides": {
         "webpack://GUI/*": "${webRoot}/scratch-editor/packages/scratch-gui/*",
         "webpack://GUI/scratch-vm/*": "${webRoot}/scratch-editor/packages/scratch-vm/*",
+        "webpack://GUI/scratch-render/*": "${webRoot}/scratch-editor/packages/scratch-render/*",
+        "webpack://GUI/scratch-svg-renderer/*": "${webRoot}/scratch-editor/packages/scratch-svg-renderer/*",
         "https://0.0.0.0:5500/*": "${webRoot}/*"
       }
     }
   ]
 }
 ```
+
+Related launch configurations:
+
+- `debug on dev-server`: starts required servers via `start debug servers` and launches Chrome
+- `attach on dev-server`: launches Chrome against the dev server without starting tasks
+- `attach on live server`: launches Chrome against the Live Server URL
+
+### 4. tasks.json (in scratch-editor)
+
+`scratch-editor/.vscode/tasks.json` defines these tasks for the debug workflow:
+
+- `start live server`: serves the workspace root over HTTPS on port `5500`
+- `start https`: starts `scratch-gui` dev server with HTTPS on port `8601`
+- `start debug servers`: runs `start live server` then `start https`
 
 ## Debug Steps
 
@@ -123,21 +142,22 @@ npm run watch
 
 ### 2. Start Live Server
 
-Open the extension folder in VS Code and start Live Server.
-It will be served at `https://0.0.0.0:5500/`.
+No manual Live Server start is needed if you use launch config `debug on dev-server`.
+It runs task `start debug servers`, which includes task `start live server`.
 
 ### 3. Start scratch-editor dev server
 
-```sh
-cd scratch-editor/packages/scratch-gui
-npm run start
-```
+No manual `npm run start` is needed if you use launch config `debug on dev-server`.
+It runs task `start debug servers`, which includes task `start https`.
 
 ### 4. Start debugger
 
 1. Open the scratch-editor folder in VS Code.
-2. Press F5 and launch `debug on dev-server`.
-3. Chrome opens at `https://0.0.0.0:8601`.
+2. Press F5 and choose `debug on dev-server`.
+3. VS Code runs task `start debug servers`.
+4. Chrome opens at `https://localhost:8601/`.
+
+If the servers are already running, you can use `attach on dev-server` instead.
 
 ### 5. Load extension
 
@@ -161,6 +181,7 @@ npm run start
 
 - Check `sourceMapPathOverrides` in launch.json.
 - Verify that `webRoot` points to the workspace parent directory.
+- If you launched manually, verify the same hostnames are used as the launch config (`https://localhost:8601/` and `https://0.0.0.0:5500/`).
 
 ### CORS errors
 
@@ -169,6 +190,8 @@ npm run start
 
 ### Extension is not loading
 
-- Check whether `npm run watch` is running.
+- Check whether `npm run watch` is running in the extension repository.
+- Check whether task `start live server` is serving the extension URL on port `5500`.
+- Check whether task `start https` has finished compiling successfully.
 - Verify that an `.mjs` file is generated in `dist/`.
 - Check for network errors in browser developer tools.
