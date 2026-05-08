@@ -25,7 +25,6 @@ This repository uses a modular skill structure, with each skill focused on a spe
 
 ## Related Files
 
-- Create skill: `.github/skills/xcratch-extension-create/SKILL.md`
-- Debug skill: `.github/skills/xcratch-extension-debug/SKILL.md`
-- Auto debug skill: `.github/skills/xcratch-extension-debug-auto/SKILL.md`
-- Plugin config: `.claude-plugin/plugin.json`
+- Create skill: `skills/xcratch-extension-create/SKILL.md`
+- Debug skill: `skills/xcratch-extension-debug/SKILL.md`
+- Auto debug skill: `skills/xcratch-extension-debug-auto/SKILL.md`

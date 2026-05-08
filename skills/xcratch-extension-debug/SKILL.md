@@ -1,6 +1,7 @@
 ---
 name: xcratch-extension-debug
 description: 'Use when debugging an in-development Xcratch extension in VS Code. Trigger phrases: breakpoints not hit, source maps, debug on dev-server, live server HTTPS, extension not loading in editor.'
+license: MIT
 argument-hint: 'Describe current debug setup, failing behavior, and expected result.'
 user-invocable: true
 ---

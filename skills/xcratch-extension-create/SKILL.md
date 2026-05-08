@@ -1,6 +1,7 @@
 ---
 name: xcratch-extension-create
 description: 'Use when setting up a new Xcratch extension project and local development environment. Trigger phrases: xcratch-create, scaffold extension, setup-dev, initialize extension repo, local extension setup.'
+license: MIT
 argument-hint: 'Describe the extension name/ID, GitHub account/repo, and current setup status.'
 user-invocable: true
 ---

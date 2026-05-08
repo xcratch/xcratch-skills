@@ -1,6 +1,7 @@
 ---
 name: xcratch-extension-debug-auto
 description: 'Autonomously debug an Xcratch extension in the scratch-editor dev-server by navigating to https://localhost:8601/?extension=<extensionURL> and loading the extension from https://0.0.0.0:5500/*. Use when: verifying extension loads, checking console errors, inspecting extension blocks in the Scratch editor UI, reproducing runtime failures with a specific extension URL.'
+license: MIT
 argument-hint: 'Provide the extension dist file path relative to the workspace root, e.g. xcx-my-extension/dist/myExtension.mjs'
 user-invocable: true
 ---
