@@ -1,6 +1,6 @@
 # xcratch-skills
 
-Xcratch extension development skills for Copilot.
+Xcratch extension development skills for AI aents. Each skill is designed to handle a specific aspect of the extension development workflow, from initial setup to debugging and deployment. By modularizing the skills, we can provide targeted guidance and actions based on the user's current needs and context.
 
 ## Skill Structure
 
