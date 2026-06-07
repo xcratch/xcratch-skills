@@ -7,15 +7,15 @@ Xcratch extension development skills for AI aents. Each skill is designed to han
 This repository uses a modular skill structure, with each skill focused on a specific aspect of Xcratch extension development:
 
 - `xcratch-extension-create`: setup and scaffold workflow
-- `xcratch-extension-debug`: local debug workflow
-- `xcratch-extension-debug-auto`: autonomous agent debug via `?extension=` query parameter
+- `xcratch-extension-debug`: debug workflow against the public `xcratch.github.io` editor
+- `xcratch-extension-debug-auto`: autonomous agent debug via `?extension=` query parameter on the public `xcratch.github.io` editor
 - `xcratch-extension-stretch3`: stretch3 integration (creates install script and entry files)
 
 ## Which Skill To Use
 
 - If the user needs a new extension repository, `xcratch-create`, `setup-dev`, or initial build, use `xcratch-extension-create`.
-- If the user has breakpoint/source map/loading issues in local development, use `xcratch-extension-debug`.
-- If the agent needs to autonomously navigate to `https://localhost:8601/?extension=` and verify the extension loads, use `xcratch-extension-debug-auto`.
+- If the user has breakpoint/source map/loading issues debugging against the public `xcratch.github.io` editor, use `xcratch-extension-debug`.
+- If the agent needs to autonomously navigate to `https://xcratch.github.io/editor/?extension=` and verify the extension loads, use `xcratch-extension-debug-auto`.
 - If the user wants to add an extension to stretch3, use `xcratch-extension-stretch3`.
 
 ## Routing Policy

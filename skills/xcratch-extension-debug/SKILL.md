@@ -1,6 +1,6 @@
 ---
 name: xcratch-extension-debug
-description: 'Use when debugging an in-development Xcratch extension in VS Code. Trigger phrases: breakpoints not hit, source maps, debug on dev-server, live server HTTPS, extension not loading in editor.'
+description: 'Use when debugging an in-development Xcratch extension in VS Code. Trigger phrases: breakpoints not hit, source maps, debug on xcratch.github.io editor, live server HTTPS, extension not loading in editor.'
 license: MIT
 argument-hint: 'Describe current debug setup, failing behavior, and expected result.'
 user-invocable: true
@@ -8,7 +8,7 @@ user-invocable: true
 
 # Xcratch Extension Debug
 
-Debug an extension under development with local `scratch-editor` and VS Code.
+Debug an extension under development with the public `xcratch.github.io` editor and VS Code, by serving the local build over HTTPS and loading it via the `?extension=` query parameter. No local `scratch-editor` checkout is required.
 
 ## When to Use
 
@@ -24,15 +24,18 @@ Debug an extension under development with local `scratch-editor` and VS Code.
 npm run watch
 ```
 
-Then in the `scratch-editor` workspace, run VS Code launch config `debug on dev-server`.
-This launch uses preLaunchTask `start debug servers`, which starts these existing tasks automatically:
+Then in VS Code, run launch config `debug extension on xcratch.github.io editor`.
+This launch uses `preLaunchTask: start live server`, which serves the workspace root over HTTPS on `https://0.0.0.0:5500`, then opens Chrome at:
 
-- `start live server`
-- `start https`
+```text
+https://xcratch.github.io/editor/?extension=https://0.0.0.0:5500/dist/xcratchExample.mjs
+```
+
+You will be prompted for the extension URL; the default points at `dist/xcratchExample.mjs`.
 
 ## Load Extension URL
 
-`https://0.0.0.0:5500/xcx-my-extension/dist/myExtension.mjs`
+`https://0.0.0.0:5500/dist/xcratchExample.mjs`
 
 ## Workflow Details
 

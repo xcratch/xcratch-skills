@@ -1,14 +1,14 @@
 ---
 name: xcratch-extension-debug-auto
-description: 'Autonomously debug an Xcratch extension in the scratch-editor dev-server by navigating to https://localhost:8601/?extension=<extensionURL> and loading the extension from https://0.0.0.0:5500/*. Use when: verifying extension loads, checking console errors, inspecting extension blocks in the Scratch editor UI, reproducing runtime failures with a specific extension URL.'
+description: 'Autonomously debug an Xcratch extension in the public xcratch.github.io editor by navigating to https://xcratch.github.io/editor/?extension=<extensionURL> and loading the extension from https://0.0.0.0:5500/*. Use when: verifying extension loads, checking console errors, inspecting extension blocks in the Scratch editor UI, reproducing runtime failures with a specific extension URL.'
 license: MIT
-argument-hint: 'Provide the extension dist file path relative to the workspace root, e.g. xcx-my-extension/dist/myExtension.mjs'
+argument-hint: 'Provide the extension dist file path relative to the workspace root, e.g. dist/xcratchExample.mjs'
 user-invocable: true
 ---
 
 # Debug Extension with Query Parameter
 
-Autonomously load and inspect an Xcratch extension in the scratch-editor by appending it as the `?extension=` query parameter.
+Autonomously load and inspect an Xcratch extension in the public editor at `https://xcratch.github.io/editor/` by appending it as the `?extension=` query parameter. No local `scratch-editor` checkout is needed — only a local HTTPS live server that serves the extension's build output.
 
 ## When to Use
 
@@ -21,11 +21,13 @@ Autonomously load and inspect an Xcratch extension in the scratch-editor by appe
 
 | Requirement | Detail |
 |-------------|--------|
-| Dev servers running | port 8601 (scratch-gui) and port 5500 (live server) |
+| Live server running | port 5500, serving the extension repo over HTTPS |
 | Extension built | `npm run build` or `npm run watch` ran in the extension repo |
-| HTTPS certificates | mkcert-generated certs installed in `scratch-editor/.vscode/` |
+| HTTPS certificates | mkcert-generated certs installed in `<extension-repo>/.vscode/` |
 
-If the dev servers are not running, start them using the `start debug servers` task in the scratch-editor workspace before proceeding.
+If the live server is not running, start it using the `start live server` task in the extension's
+VS Code workspace (or run the launch config `debug extension on xcratch.github.io editor`, which
+starts it via `preLaunchTask`) before proceeding.
 
 ## Procedure
 
@@ -37,20 +39,21 @@ The extension is served by the live server at:
 https://0.0.0.0:5500/<workspace-relative-path-to-dist-file>
 ```
 
-Example: if the dist file is at `xcx-my-extension/dist/myExtension.mjs` (relative to the parent that live-server serves), the extension URL is:
+Example: if the dist file is at `dist/xcratchExample.mjs` (relative to the extension repo root that
+live-server serves), the extension URL is:
 
 ```
-https://0.0.0.0:5500/xcx-my-extension/dist/myExtension.mjs
+https://0.0.0.0:5500/dist/xcratchExample.mjs
 ```
 
 Confirm the file exists before navigating.
 
 ### Step 2 — Compose the editor URL
 
-Combine the dev server base URL with the extension query parameter:
+Combine the public editor base URL with the extension query parameter:
 
 ```
-https://localhost:8601/?extension=https://0.0.0.0:5500/<path-to-dist-file>
+https://xcratch.github.io/editor/?extension=https://0.0.0.0:5500/<path-to-dist-file>
 ```
 
 ### Step 3 — Open the browser and navigate
@@ -59,15 +62,17 @@ Use `playwright-cli` to open and navigate to the composed URL:
 
 ```bash
 playwright-cli open
-playwright-cli goto "https://localhost:8601/?extension=https://0.0.0.0:5500/<path-to-dist-file>"
+playwright-cli goto "https://xcratch.github.io/editor/?extension=https://0.0.0.0:5500/<path-to-dist-file>"
 ```
 
-> The HTTPS certificates are self-signed. If the browser blocks the page with a certificate warning, handle it:
+> The HTTPS certificate for `https://0.0.0.0:5500` is self-signed. If the browser blocks the page
+> with a certificate warning, handle it:
 > ```bash
 > playwright-cli snapshot        # check if a warning page is shown
 > playwright-cli click <proceed-link-ref>   # click "Advanced" → "Proceed"
 > ```
-> You may need to do this for both `localhost:8601` and `0.0.0.0:5500`.
+> You may need to visit `https://0.0.0.0:5500` directly first to accept the certificate before the
+> editor can fetch the extension from it.
 
 ### Step 4 — Wait for the editor to load
 
@@ -120,7 +125,6 @@ Summarize:
 
 | Symptom | Likely Cause | Fix |
 |---------|-------------|-----|
-| Certificate warning on `localhost:8601` | mkcert CA not trusted | Run `mkcert -install` and regenerate certs |
 | Certificate warning on `0.0.0.0:5500` | Live server cert not trusted by browser | Accept the cert by visiting `https://0.0.0.0:5500` directly first |
 | 404 on ext URL | Build output missing | Run `npm run build` in extension repo |
 | CORS error | Live server not started with `--cors` | Check that `start live server` task is running |

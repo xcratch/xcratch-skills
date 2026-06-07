@@ -1,12 +1,13 @@
 # VS Code Debug Setup
 
-Using scratch-editor's VS Code debugging support, you can set breakpoints directly in extension source code.
+Using VS Code's Chrome debugger together with a local HTTPS live server, you can set breakpoints
+directly in extension source code while the extension runs inside the public editor at
+`https://xcratch.github.io/editor/`. No local `scratch-editor` checkout or multi-root workspace is needed.
 
 ## Prerequisites
 
-- scratch-editor and the xcx extension are in the same parent directory
-- HTTPS certificates are already configured (see below)
-- VS Code Live Server extension is installed
+- HTTPS certificates are configured in the extension's `.vscode` directory (see below)
+- `npx live-server` is available (installed on demand via `npx --yes live-server`)
 
 ## Configure HTTPS Certificates with mkcert
 
@@ -35,10 +36,10 @@ This installs the local CA into the system's trusted root certificate store.
 
 ### 3. Generate certificates
 
-Create certificates in scratch-editor's `.vscode` directory:
+Create certificates in the extension's own `.vscode` directory:
 
 ```sh
-cd scratch-editor/.vscode
+cd xcx-my-extension/.vscode
 mkcert -cert-file localhost.pem -key-file localhost-key.pem localhost 127.0.0.1 0.0.0.0 ::1
 ```
 
@@ -46,51 +47,58 @@ This generates the following files:
 - `localhost.pem` - certificate file
 - `localhost-key.pem` - private key file
 
-### 4. HTTPS behavior of scratch-editor dev server
+These files are matched by the `*.pem` rule in `.gitignore`, so they are not committed.
 
-The scratch-editor dev server automatically detects certificate files in `.vscode` and starts with HTTPS.
+### 4. live-server HTTPS config
 
-If certificate files are not found, it starts with HTTP.
+`.vscode/live-server-https.cjs` loads the cert/key for `live-server`:
+
+```js
+const fs = require('node:fs');
+const path = require('node:path');
+
+module.exports = {
+  cert: fs.readFileSync(path.join(__dirname, 'localhost.pem')),
+  key: fs.readFileSync(path.join(__dirname, 'localhost-key.pem'))
+};
+```
 
 ## Workspace Setup
 
-### 1. Create a multi-root workspace
+No multi-root workspace or `scratch-editor` checkout is required — only the extension repo itself.
 
-`xcx-my-extension.code-workspace`:
+### 1. tasks.json (in the extension repo)
 
-```json
-{
-  "folders": [
-    { "path": "xcx-my-extension" },
-    { "path": "scratch-editor" }
-  ],
-  "settings": {
-    "liveServer.settings.root": "../",
-    "liveServer.settings.multiRootWorkspaceName": "xcx-my-extension"
-  }
-}
-```
-
-### 2. Live Server configuration
-
-`.vscode/settings.json` (in the extension project):
+`.vscode/tasks.json` defines the task that serves the workspace root over HTTPS on port `5500`:
 
 ```json
 {
-  "liveServer.settings.port": 5500,
-  "liveServer.settings.host": "0.0.0.0",
-  "liveServer.settings.https": {
-    "enable": true,
-    "cert": "/path/to/scratch-editor/.vscode/localhost.pem",
-    "key": "/path/to/scratch-editor/.vscode/localhost-key.pem"
-  },
-  "liveServer.settings.CustomBrowser": "chrome"
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "type": "shell",
+      "command": "npx --yes live-server . --host=0.0.0.0 --port=5500 --https=./.vscode/live-server-https.cjs --cors --no-browser",
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "custom",
+        "pattern": { "regexp": "^$" },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": ".*",
+          "endsPattern": ".*Serving.*"
+        }
+      },
+      "label": "start live server"
+    }
+  ]
 }
 ```
 
-### 3. launch.json (in scratch-editor)
+This serves `dist/xcratchExample.mjs` at `https://0.0.0.0:5500/dist/xcratchExample.mjs`.
 
-`scratch-editor/.vscode/launch.json` includes the following configuration:
+### 2. launch.json (in the extension repo)
+
+`.vscode/launch.json` opens Chrome at the public editor with the extension URL pre-filled via the `?extension=` query parameter:
 
 ```json
 {
@@ -99,19 +107,35 @@ If certificate files are not found, it starts with HTTP.
     {
       "type": "chrome",
       "request": "launch",
-      "preLaunchTask": "start debug servers",
-      "name": "debug on dev-server",
-      "url": "https://localhost:8601/",
-      "webRoot": "${workspaceFolder}/..",
+      "preLaunchTask": "start live server",
+      "name": "debug extension on xcratch.github.io editor",
+      "url": "https://xcratch.github.io/editor/?extension=${input:extensionUrl}",
+      "webRoot": "${workspaceFolder}",
       "sourceMaps": true,
       "sourceMapRenames": true,
       "sourceMapPathOverrides": {
-        "webpack://GUI/*": "${webRoot}/scratch-editor/packages/scratch-gui/*",
-        "webpack://GUI/scratch-vm/*": "${webRoot}/scratch-editor/packages/scratch-vm/*",
-        "webpack://GUI/scratch-render/*": "${webRoot}/scratch-editor/packages/scratch-render/*",
-        "webpack://GUI/scratch-svg-renderer/*": "${webRoot}/scratch-editor/packages/scratch-svg-renderer/*",
         "https://0.0.0.0:5500/*": "${webRoot}/*"
       }
+    },
+    {
+      "type": "chrome",
+      "request": "launch",
+      "name": "attach on xcratch.github.io editor",
+      "url": "https://xcratch.github.io/editor/?extension=${input:extensionUrl}",
+      "webRoot": "${workspaceFolder}",
+      "sourceMaps": true,
+      "sourceMapRenames": true,
+      "sourceMapPathOverrides": {
+        "https://0.0.0.0:5500/*": "${webRoot}/*"
+      }
+    }
+  ],
+  "inputs": [
+    {
+      "id": "extensionUrl",
+      "type": "promptString",
+      "description": "Extension URL to load, for example: https://0.0.0.0:5500/dist/xcratchExample.mjs",
+      "default": "https://0.0.0.0:5500/dist/xcratchExample.mjs"
     }
   ]
 }
@@ -119,17 +143,12 @@ If certificate files are not found, it starts with HTTP.
 
 Related launch configurations:
 
-- `debug on dev-server`: starts required servers via `start debug servers` and launches Chrome
-- `attach on dev-server`: launches Chrome against the dev server without starting tasks
-- `attach on live server`: launches Chrome against the Live Server URL
+- `debug extension on xcratch.github.io editor`: starts `start live server` and launches Chrome at the public editor with the extension preloaded
+- `attach on xcratch.github.io editor`: launches Chrome against the public editor without starting tasks (use when the live server is already running)
 
-### 4. tasks.json (in scratch-editor)
+### 3. tasks.json summary
 
-`scratch-editor/.vscode/tasks.json` defines these tasks for the debug workflow:
-
-- `start live server`: serves the workspace root over HTTPS on port `5500`
-- `start https`: starts `scratch-gui` dev server with HTTPS on port `8601`
-- `start debug servers`: runs `start live server` then `start https`
+- `start live server`: serves the workspace root over HTTPS on port `5500` (no `scratch-gui` dev server needed, since the public editor is used)
 
 ## Debug Steps
 
@@ -140,35 +159,21 @@ cd xcx-my-extension
 npm run watch
 ```
 
-### 2. Start Live Server
+### 2. Start debugger
 
-No manual Live Server start is needed if you use launch config `debug on dev-server`.
-It runs task `start debug servers`, which includes task `start live server`.
+1. Open the extension folder in VS Code.
+2. Press F5 and choose `debug extension on xcratch.github.io editor`.
+3. VS Code runs task `start live server`.
+4. Enter (or accept the default) extension URL, e.g. `https://0.0.0.0:5500/dist/xcratchExample.mjs`.
+5. Chrome opens at `https://xcratch.github.io/editor/?extension=https://0.0.0.0:5500/dist/xcratchExample.mjs` and the extension loads automatically.
 
-### 3. Start scratch-editor dev server
+If the live server is already running, use `attach on xcratch.github.io editor` instead.
 
-No manual `npm run start` is needed if you use launch config `debug on dev-server`.
-It runs task `start debug servers`, which includes task `start https`.
+> The HTTPS certificate for `https://0.0.0.0:5500` is self-signed. On first load, Chrome may show a
+> certificate warning — click through "Advanced" → "Proceed" to `0.0.0.0:5500` (visiting the URL
+> directly once is enough to trust it for the session).
 
-### 4. Start debugger
-
-1. Open the scratch-editor folder in VS Code.
-2. Press F5 and choose `debug on dev-server`.
-3. VS Code runs task `start debug servers`.
-4. Chrome opens at `https://localhost:8601/`.
-
-If the servers are already running, you can use `attach on dev-server` instead.
-
-### 5. Load extension
-
-1. In Xcratch Editor, click "Load Extension".
-2. Enter this URL:
-   ```text
-   https://0.0.0.0:5500/xcx-my-extension/dist/myExtension.mjs
-   ```
-3. The extension is loaded.
-
-### 6. Set breakpoints
+### 3. Set breakpoints
 
 1. Open `src/vm/extensions/block/index.js` in VS Code.
 2. Set breakpoints on lines you want to debug.
@@ -180,18 +185,17 @@ If the servers are already running, you can use `attach on dev-server` instead.
 ### Source maps are not resolved
 
 - Check `sourceMapPathOverrides` in launch.json.
-- Verify that `webRoot` points to the workspace parent directory.
-- If you launched manually, verify the same hostnames are used as the launch config (`https://localhost:8601/` and `https://0.0.0.0:5500/`).
+- Verify that `webRoot` points to the extension's workspace folder (`${workspaceFolder}`).
+- If you launched manually, verify the same hostnames are used as the launch config (`https://xcratch.github.io/` and `https://0.0.0.0:5500/`).
 
 ### CORS errors
 
-- Check whether Live Server is running on the correct host/port.
-- Verify that HTTPS certificates are valid.
+- Check whether `live-server` is running on the correct host/port (`0.0.0.0:5500`).
+- Verify that HTTPS certificates are valid and the `--cors` flag is present in the task command.
 
 ### Extension is not loading
 
 - Check whether `npm run watch` is running in the extension repository.
 - Check whether task `start live server` is serving the extension URL on port `5500`.
-- Check whether task `start https` has finished compiling successfully.
 - Verify that an `.mjs` file is generated in `dist/`.
-- Check for network errors in browser developer tools.
+- Check for network errors (certificate rejection, 404, CORS) in browser developer tools.
