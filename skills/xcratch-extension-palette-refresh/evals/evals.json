@@ -1,0 +1,42 @@
+{
+  "skill_name": "xcratch-extension-palette-refresh",
+  "evals": [
+    {
+      "id": 0,
+      "prompt": "I'm building an Xcratch extension (a scratch-vm extension, loaded as a .mjs). When the user runs my `set up agent` block I call `target.lookupOrCreateList('agent_skills', 'skills')` to give the sprite a list called `skills`. The list gets created fine (I can see it in the project json) but it does NOT show up in the Variables category of the block palette until I close the Code tab and open it again, or switch to another sprite and back. I want it to appear in the palette immediately when the block runs. How do I fix this? Show me the code.",
+      "expected_output": "Explains that requestBlocksUpdate/emitWorkspaceUpdate only syncs the variable map and that the variables flyout is a dynamic category that must be force-refreshed; provides a helper that reaches the scratch-blocks workspace (via React fiber from svg.blocklyWorkspace), sets ws.toolboxRefreshEnabled_ = true, and calls ws.refreshToolboxSelection_(); calls runtime.requestBlocksUpdate() first.",
+      "files": [],
+      "assertions": [
+        "Forces a real toolbox/variable-flyout re-render on the live scratch-blocks workspace (refreshToolboxSelection_ / updateToolbox), not just a VM-level update",
+        "Sets toolboxRefreshEnabled_ = true before refreshing (the silent no-op gotcha)",
+        "Syncs the new variable into the workspace first via requestBlocksUpdate / emitWorkspaceUpdate",
+        "Explains the root cause: dynamic custom=VARIABLE category -> unchanged toolbox XML -> diff-gated updateToolbox is skipped"
+      ]
+    },
+    {
+      "id": 1,
+      "prompt": "scratch-vm extension question. After I create a variable on a target I already call `this.runtime.requestBlocksUpdate()`. The script area redraws and `vm.toJSON()` shows the variable, but the new variable still isn't listed in the palette's Variables flyout until I switch sprites. requestBlocksUpdate clearly isn't enough on its own — what am I missing to get the palette flyout to update?",
+      "expected_output": "Identifies that requestBlocksUpdate syncs the variable map but does not re-render the dynamic variable flyout because the toolbox XML string is unchanged so the GUI's diff-gated updateToolbox is skipped; instructs to grab the workspace and call refreshToolboxSelection_ after setting toolboxRefreshEnabled_ = true.",
+      "files": [],
+      "assertions": [
+        "Forces a real toolbox/variable-flyout re-render on the live scratch-blocks workspace (refreshToolboxSelection_ / updateToolbox), not just a VM-level update",
+        "Sets toolboxRefreshEnabled_ = true before refreshing (the silent no-op gotcha)",
+        "Syncs the new variable into the workspace first via requestBlocksUpdate / emitWorkspaceUpdate",
+        "Explains the root cause: dynamic custom=VARIABLE category -> unchanged toolbox XML -> diff-gated updateToolbox is skipped"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "In my Xcratch extension I have a helper `ensureProgressList(target)` that does `target.lookupOrCreateList(id, 'progress')` and then `target.runtime.emitProjectChanged()`. The list never appears in the palette until the user re-renders the code tab. I tried adding `target.runtime.requestBlocksUpdate()` too and it still doesn't show immediately. Can you walk me through exactly why this happens and give me a robust, best-effort fix that won't crash if the editor internals change?",
+      "expected_output": "Walks through the root cause (emitProjectChanged only marks dirty; dynamic custom=VARIABLE category; diff-gated updateToolbox), then provides a try/catch-guarded helper with typeof document guard that walks the React fiber to the workspace, sets toolboxRefreshEnabled_ = true, and calls refreshToolboxSelection_; notes it should run only on creation and is best-effort with a tab-switch fallback.",
+      "files": [],
+      "assertions": [
+        "Forces a real toolbox/variable-flyout re-render on the live scratch-blocks workspace (refreshToolboxSelection_ / updateToolbox), not just a VM-level update",
+        "Sets toolboxRefreshEnabled_ = true before refreshing (the silent no-op gotcha)",
+        "Syncs the new variable into the workspace first via requestBlocksUpdate / emitWorkspaceUpdate",
+        "Explains the root cause: dynamic custom=VARIABLE category -> unchanged toolbox XML -> diff-gated updateToolbox is skipped",
+        "Provides a best-effort helper (try/catch + feature/document guard) with a tab-switch fallback and create-once guidance"
+      ]
+    }
+  ]
+}
