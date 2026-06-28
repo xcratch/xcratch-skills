@@ -63,8 +63,7 @@ The public editor (`https://xcratch.github.io`, a public origin) fetches the ext
 that block the fetch and **cannot be clicked away from playwright** (they are native browser UI):
 
 1. **Self-signed certificate** rejection for `https://0.0.0.0:5500`.
-2. **Local Network Access (LNA) permission prompt** — Chrome shows "xcratch.github.io が次の許可を
-   求めています — このデバイス上の他のアプリやサービスにアクセスする". If not granted, the fetch fails with
+2. **Local Network Access (LNA) permission prompt** — Chrome shows "xcratch.github.io is requesting permission to access other apps and services on this device". If not granted, the fetch fails with
    `Permission was denied for this request to access the 'loopback' address space` and the extension
    never loads.
 
