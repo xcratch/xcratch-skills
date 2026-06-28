@@ -172,6 +172,12 @@ If the live server is already running, use `attach on xcratch.github.io editor` 
 > The HTTPS certificate for `https://0.0.0.0:5500` is self-signed. On first load, Chrome may show a
 > certificate warning — click through "Advanced" → "Proceed" to `0.0.0.0:5500` (visiting the URL
 > directly once is enough to trust it for the session).
+>
+> Chrome may also show a **Local Network Access** permission prompt ("このデバイス上の他のアプリや
+> サービスにアクセス") because the public editor fetches from the loopback `0.0.0.0:5500` — click
+> **許可する / Allow**, then reload so the extension is fetched. (For fully automated playwright-cli
+> runs where this native prompt can't be clicked, see the `xcratch-extension-debug-auto` skill's
+> config-based bypass.)
 
 ### 3. Set breakpoints
 

@@ -56,25 +56,56 @@ Combine the public editor base URL with the extension query parameter:
 https://xcratch.github.io/editor/?extension=https://0.0.0.0:5500/<path-to-dist-file>
 ```
 
-### Step 3 — Open the browser and navigate
+### Step 3 — Configure playwright-cli to allow the local HTTPS extension
 
-Use `playwright-cli` to open and navigate to the composed URL:
+The public editor (`https://xcratch.github.io`, a public origin) fetches the extension module from
+`https://0.0.0.0:5500` (a loopback address). Under playwright-cli this hits **two** browser barriers
+that block the fetch and **cannot be clicked away from playwright** (they are native browser UI):
+
+1. **Self-signed certificate** rejection for `https://0.0.0.0:5500`.
+2. **Local Network Access (LNA) permission prompt** — Chrome shows "xcratch.github.io が次の許可を
+   求めています — このデバイス上の他のアプリやサービスにアクセスする". If not granted, the fetch fails with
+   `Permission was denied for this request to access the 'loopback' address space` and the extension
+   never loads.
+
+Both are bypassed automatically by launching the browser with a config file. Create
+`playwright-cli.json` (auto-loaded from the current directory, or pass it via `--config`):
+
+```json
+{
+  "browser": {
+    "launchOptions": {
+      "args": [
+        "--disable-features=LocalNetworkAccessChecks,BlockInsecurePrivateNetworkRequests,PrivateNetworkAccessSendPreflights,PrivateNetworkAccessRespectPreflightResults"
+      ]
+    },
+    "contextOptions": {
+      "ignoreHTTPSErrors": true
+    }
+  }
+}
+```
+
+- `contextOptions.ignoreHTTPSErrors: true` → accept the self-signed cert (no "Advanced → Proceed").
+- `launchOptions.args` `--disable-features=...` → disable the Local Network Access / Private Network
+  Access prompt so the public→loopback fetch is allowed without the (unclickable) permission dialog.
+  Multiple feature names are listed for cross-version safety; harmless extras are ignored.
+
+### Step 4 — Open the browser and navigate
+
+The config must be applied at **browser launch time**, so kill any stale session first, then `open`:
 
 ```bash
-playwright-cli open
+playwright-cli kill-all
+playwright-cli open --headed --config ./playwright-cli.json
 playwright-cli goto "https://xcratch.github.io/editor/?extension=https://0.0.0.0:5500/<path-to-dist-file>"
 ```
 
-> The HTTPS certificate for `https://0.0.0.0:5500` is self-signed. If the browser blocks the page
-> with a certificate warning, handle it:
-> ```bash
-> playwright-cli snapshot        # check if a warning page is shown
-> playwright-cli click <proceed-link-ref>   # click "Advanced" → "Proceed"
-> ```
-> You may need to visit `https://0.0.0.0:5500` directly first to accept the certificate before the
-> editor can fetch the extension from it.
+If `playwright-cli.json` sits in the current directory it is auto-loaded and `--config` can be
+omitted. With this config the extension loads with **no manual clicks** — no cert warning, no LNA
+prompt, no reload.
 
-### Step 4 — Wait for the editor to load
+### Step 5 — Wait for the editor to load
 
 Take a snapshot and confirm the Scratch editor UI is visible (stage, toolbox, sprite list):
 
@@ -84,7 +115,7 @@ playwright-cli snapshot
 
 If the editor is still loading, wait and snapshot again.
 
-### Step 5 — Check the browser console for errors
+### Step 6 — Check the browser console for errors
 
 ```bash
 playwright-cli console
@@ -95,7 +126,7 @@ Look for:
 - Network errors (CORS, 404, certificate rejection)
 - JavaScript exceptions thrown by the extension
 
-### Step 6 — Verify extension blocks appear in the toolbox
+### Step 7 — Verify extension blocks appear in the toolbox
 
 Take a screenshot of the full editor UI:
 
@@ -105,7 +136,7 @@ playwright-cli screenshot
 
 Inspect the snapshot for a custom category block corresponding to the extension. If not found, the extension likely failed to register — check the console output from Step 5.
 
-### Step 7 — Collect network diagnostics (if needed)
+### Step 8 — Collect network diagnostics (if needed)
 
 ```bash
 playwright-cli network
@@ -113,7 +144,7 @@ playwright-cli network
 
 Confirm the `.mjs` dist file was fetched with HTTP 200 from `https://0.0.0.0:5500`.
 
-### Step 8 — Report findings
+### Step 9 — Report findings
 
 Summarize:
 1. Whether the extension URL loaded successfully (HTTP status)
@@ -125,7 +156,8 @@ Summarize:
 
 | Symptom | Likely Cause | Fix |
 |---------|-------------|-----|
-| Certificate warning on `0.0.0.0:5500` | Live server cert not trusted by browser | Accept the cert by visiting `https://0.0.0.0:5500` directly first |
+| Certificate warning on `0.0.0.0:5500` | Live server cert not trusted by browser | Launch with the Step 3 config (`contextOptions.ignoreHTTPSErrors: true`); restart the session so it applies |
+| Extension never loads; console shows `Permission was denied for this request to access the 'loopback' address space` (no fetch to `0.0.0.0:5500`) | Chrome **Local Network Access** prompt blocking public→loopback; the native dialog can't be clicked from playwright | Launch with the Step 3 config (`launchOptions.args` `--disable-features=LocalNetworkAccessChecks,...`); run `playwright-cli kill-all` then re-`open` so the flag applies |
 | 404 on ext URL | Build output missing | Run `npm run build` in extension repo |
 | CORS error | Live server not started with `--cors` | Check that `start live server` task is running |
 | Extension blocks not shown | Extension threw at registration | Check console for JS errors in extension source |

@@ -8,7 +8,7 @@ This repository uses a modular skill structure, with each skill focused on a spe
 
 - `xcratch-extension-create`: setup and scaffold workflow
 - `xcratch-extension-debug`: debug workflow against the public `xcratch.github.io` editor
-- `xcratch-extension-debug-auto`: autonomous agent debug via `?extension=` query parameter on the public `xcratch.github.io` editor
+- `xcratch-extension-debug-auto`: autonomous agent debug via `?extension=` query parameter on the public `xcratch.github.io` editor (includes a `playwright-cli` config that auto-bypasses the self-signed cert and Chrome's Local Network Access prompt so the local extension loads without manual clicks)
 - `xcratch-extension-stretch3`: stretch3 integration (creates install script and entry files)
 - `xcratch-extension-palette-refresh`: force the editor block palette (variable/list/My Blocks flyout) to refresh after programmatic VM model changes
 
